@@ -1,39 +1,135 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# libxd
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/guides/libraries/writing-package-pages).
+A libx-esque Collection infrastructure for MobX applications. Based off of [libx](https://github.com/jeffijoe/libx) by jeffijoe.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-library-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/developing-packages).
--->
+## Collection
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+> "I hate regular lists, I'm always getting duplicate items" - 733T-Hck3r-man-27
 
-## Features
+> "How can anyone possibly maintain a list of objects and dynamically update them in realtime?!" - Tom Cruise
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+Well not to fear my friends, libxd is hear!
+
+libxd maintains a collection of items, making sure we only have a single instance of an entity in memory. It even uses Mobx! That way, updates to an entity will propagate to the entire system without us having to do anything at all.
 
 ## Getting started
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+Be sure to install the latest `build_runner` pakcage and run `flutter packages pub run build_runner build`. This is used to generate the needed `mobx_codegen` files.
 
-## Usage
+## Why use Collections?
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+The libxd `Collection` allows us to easly manage a list of any model type. It can ensure each item is unique by the models ID.
+
+libxd uses the `mobx_dart` packge to ensure changes to the collection items can be observed and can propogate on your app realtime.
+
+## Specifying a Model ID
+
+Each item is required to have an ID variable. By default `libxd` tries to access the `id` param on your object (aka `item.id`). You can specify which field is your ID by overriding the `getModelId` method when instantiating your `Colelction`.
 
 ```dart
-const like = 'sample';
+Collection<Car> cars = Collection<Car>(
+    getModelId: (c) => c.vinNumber
+);
 ```
 
-## Additional information
+Now everytime you add a new `Car` to your `Collection` it will ensure it is unique by it's VIN number.
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+## Setting Objects
+
+Ok, so how do we go about updating and adding things to our `Collection`?
+
+For example, lets say we have a `User` model:
+
+```dart
+class User {
+    String id;
+    String name;
+    String email;
+}
+```
+
+We can easily add items and update items in our collection by using the `set` or `setAll` methods:
+
+```dart
+Collection<User> users = Collection<User>();
+
+final someApiRequest = await dio.get('/users');
+final result = someApiRequest.data.map((json) => User.fromJson(json));
+
+users.setAll(result);
+```
+
+This will add all `User` objects to our collection and update any duplicates.
+
+_**Note: we don't need to specify `getModelId` since our class has an `id` field.**_
+
+## Sorting the Collection
+
+Say I have a list of objects that need to be ordered based on a specific field. Well libx does that!
+
+Simply specify the `sortBy` field when instantiating a new `Collection`:
+
+```dart
+Collection<Messages> messages = Collection<Messages>(
+    sortBy: CollectionSort<Messages>((m) => m.dateSent.toString(), 'desc'),
+);
+```
+
+Now, whenerver the items in the collection are updated, the collection will be sorted to it's proper order.
+
+> "Ok, but I don't want to sort everytime the collection is updated..." - anonymous user
+
+Well not to fear, we got you covered!
+
+Just call `sort` on you collection and specify the field to be sorted on.
+
+```dart
+notifications.sort((n) => n.dateCreated.toString(), 'asc');
+```
+
+## Removing Objects
+
+libxd makes it super simple to remove objects from your collection.
+
+### Remove by Reference
+
+```dart
+final item = SomeItem();
+collection.set(item);
+
+collection.remove(item);
+```
+
+### Remove by ID
+
+```dart
+collection.removeById(item.userId);
+```
+
+## Clearing the Collection
+
+Emptys the collection and preps it to recieve new items.
+
+```dart
+collection.clear()
+```
+
+## Some nice to have methods
+
+### Move Item
+
+> "I'm implementing some sweet drag n' drop funcitonality, but I have to do this convoluted code to move things around in my list... pls help!" - noob coder
+
+Not to worry libxd has your back!
+
+Simply call `move` and specify your from index and to index.
+
+```dart
+collection.move(2, 7);
+```
+
+## Original libx Package
+
+Creator: [jeffijoe](https://github.com/jeffijoe)
+
+Github: https://github.com/jeffijoe/libx

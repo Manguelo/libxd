@@ -1,3 +1,4 @@
-## 0.0.1
+## 1.0.0
 
-* TODO: Describe initial release.
+- libxd initial release!
+- Addition of `Collection` allows for a simple object list management
