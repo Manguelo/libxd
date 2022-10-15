@@ -8,7 +8,7 @@ A libx-esque Collection infrastructure for MobX applications. Based off of [libx
 
 > "How can anyone possibly maintain a list of objects and dynamically update them in realtime?!" - Tom Cruise
 
-Well not to fear my friends, libxd is hear!
+Well not to fear my friends, libxd is here!
 
 libxd maintains a collection of items, making sure we only have a single instance of an entity in memory. It even uses Mobx! That way, updates to an entity will propagate to the entire system without us having to do anything at all.
 
@@ -18,13 +18,13 @@ Be sure to install the latest `build_runner` pakcage and run `flutter packages p
 
 ## Why use Collections?
 
-The libxd `Collection` allows us to easly manage a list of any model type. It can ensure each item is unique by the models ID.
+The libxd `Collection` allows us to easily manage a list of any model type. It can ensure each item is unique based on the model ID.
 
-libxd uses the `mobx_dart` packge to ensure changes to the collection items can be observed and can propogate on your app realtime.
+libxd uses the `mobx_dart` package to ensure changes to the collection items can be observed and can propagate on your app in realtime.
 
 ## Specifying a Model ID
 
-Each item is required to have an ID variable. By default `libxd` tries to access the `id` param on your object (aka `item.id`). You can specify which field is your ID by overriding the `getModelId` method when instantiating your `Colelction`.
+Each item is required to have an ID variable. By default `libxd` tries to access the `id` param on your object (aka `item.id`). You can specify which field is your ID by overriding the `getModelId` method when instantiating your `Collection`.
 
 ```dart
 Collection<Car> cars = Collection<Car>(
@@ -61,11 +61,11 @@ users.setAll(result);
 
 This will add all `User` objects to our collection and update any duplicates.
 
-_**Note: we don't need to specify `getModelId` since our class has an `id` field.**_
+> **Note**: we don't need to specify `getModelId` since our class has an `id` field.
 
 ## Sorting the Collection
 
-Say I have a list of objects that need to be ordered based on a specific field. Well libx does that!
+Say I have a list of objects that need to be ordered based on a specific field. Well libxd does that!
 
 Simply specify the `sortBy` field when instantiating a new `Collection`:
 
@@ -75,13 +75,13 @@ Collection<Messages> messages = Collection<Messages>(
 );
 ```
 
-Now, whenerver the items in the collection are updated, the collection will be sorted to it's proper order.
+Now, whenever the items in the collection are updated, the collection will be sorted accordingly.
 
-> "Ok, but I don't want to sort everytime the collection is updated..." - anonymous user
+> "Ok, but I don't want to sort every time the collection is updated..." - anonymous user
 
 Well not to fear, we got you covered!
 
-Just call `sort` on you collection and specify the field to be sorted on.
+Just call `sort` on your collection and specify the field to be sorted on.
 
 ```dart
 notifications.sort((n) => n.dateCreated.toString(), 'asc');
@@ -108,7 +108,7 @@ collection.removeById(item.userId);
 
 ## Clearing the Collection
 
-Emptys the collection and preps it to recieve new items.
+Empties the collection and preps it to receive new items.
 
 ```dart
 collection.clear()
@@ -120,9 +120,9 @@ collection.clear()
 
 > "I'm implementing some sweet drag n' drop funcitonality, but I have to do this convoluted code to move things around in my list... pls help!" - noob coder
 
-Not to worry libxd has your back!
+Not to worry, libxd has your back!
 
-Simply call `move` and specify your from index and to index.
+Simply call `move` and specify your `from` index and `to` index.
 
 ```dart
 collection.move(2, 7);
