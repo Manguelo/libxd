@@ -156,6 +156,17 @@ mixin _$Collection<T> on _Collection<T>, Store {
   }
 
   @override
+  void _trySort([bool withSort = true]) {
+    final _$actionInfo =
+        _$_CollectionActionController.startAction(name: '_Collection._trySort');
+    try {
+      return super._trySort(withSort);
+    } finally {
+      _$_CollectionActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 

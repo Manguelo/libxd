@@ -22,7 +22,12 @@ abstract class _Collection<T> with Store {
     this.sortBy,
   }) {
     getModelId ??= (dynamic s) => s?.id;
-    update ??= (existing, data) => existing = data;
+    update ??= (existing, data) {
+      final indexToUpdate = items.indexOf(existing);
+      if (indexToUpdate != -1) {
+        items[indexToUpdate] = data;
+      }
+    };
     create ??= (input) => input;
   }
 
@@ -117,6 +122,7 @@ abstract class _Collection<T> with Store {
     var existing = get(dataId);
     if (existing != null) {
       update!(existing, item);
+      _trySort(withSort);
       return existing;
     }
 
@@ -127,15 +133,14 @@ abstract class _Collection<T> with Store {
     existing = get(dataId);
     if (existing != null) {
       update!(existing, item);
+      _trySort(withSort);
       return existing;
     }
 
     items.add(created);
     idMap.addAll({dataId: created});
 
-    if (withSort && sortBy != null) {
-      sort(sortBy!.variable, sortBy!.order);
-    }
+    _trySort(withSort);
 
     return created;
   }
@@ -148,11 +153,11 @@ abstract class _Collection<T> with Store {
     if (models.isEmpty) {
       return [];
     }
-    final result = models.map((item) => _set(item, withSort: false));
+    final result = models.map((item) => _set(item, withSort: false)).toList();
     if (sortBy != null) {
       sort(sortBy!.variable, sortBy!.order);
     }
-    return result.toList();
+    return result;
   }
 
   /// Adds one item to the end of collection (does not call create).
@@ -160,9 +165,6 @@ abstract class _Collection<T> with Store {
   @action
   Collection<T> add(T model) {
     addAll([model]);
-    if (sortBy != null) {
-      sort(sortBy!.variable, sortBy!.order);
-    }
     return this as Collection<T>;
   }
 
@@ -171,7 +173,7 @@ abstract class _Collection<T> with Store {
   @action
   Collection<T> addAll(Iterable<T> models) {
     // Try filtering out existing items.
-    models = models.where((m) => items.contains(m));
+    models = models.where((m) => !items.contains(m));
     items.addAll(models);
     if (sortBy != null) {
       sort(sortBy!.variable, sortBy!.order);
@@ -232,6 +234,14 @@ abstract class _Collection<T> with Store {
       items.sort((x, y) => variable(x).compareTo(variable(y)));
     } else {
       items.sort((x, y) => variable(y).compareTo(variable(x)));
+    }
+  }
+
+  /// Tries to sort the collection if possible/
+  @action
+  void _trySort([bool withSort = true]) {
+    if (withSort && sortBy != null) {
+      sort(sortBy!.variable, sortBy!.order);
     }
   }
 }
