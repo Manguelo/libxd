@@ -153,4 +153,88 @@ void main() {
     collection.set(item5);
     assert(collection.items.first.optInt == 9);
   });
+
+  test('updating item emits event on items list', () {
+    final item = TestItem(true, 3, '111');
+    final item2 = TestItem(true, 4, '222');
+    final collection = Collection<TestItem>(
+      getModelId: (i) => i.optString,
+      sortBy: CollectionSort((v) => v.optInt.toString(), 'desc'),
+    );
+
+    collection.setAll([item, item2]);
+    assert(collection.items.first.optInt == 4);
+
+    var count = 0;
+    collection.items.observe((p0) {
+      count += 1;
+    });
+
+    // Let's update our item3 and ensure the colelction is sorted.
+    final item5 = TestItem(true, 9, '111');
+    collection.set(item5);
+    assert(count >= 1);
+  });
+
+  test('updating item emits event on collection', () {
+    final item = TestItem(true, 3, '111');
+    final item2 = TestItem(true, 4, '222');
+    final collection = Collection<TestItem>(
+      getModelId: (i) => i.optString,
+      sortBy: CollectionSort((v) => v.optInt.toString(), 'desc'),
+    );
+
+    collection.setAll([item, item2]);
+    assert(collection.items.first.optInt == 4);
+
+    var count = 0;
+    collection.observe((p0) {
+      count += 1;
+    });
+
+    // Let's update our item3 and ensure the colelction is sorted.
+    final item5 = TestItem(true, 9, '111');
+    collection.set(item5);
+    assert(count == 1);
+  });
+
+  test('updating multiple items emits single event on collection', () {
+    final item = TestItem(true, 3, '111');
+    final item2 = TestItem(true, 4, '222');
+    final item3 = TestItem(true, 9, '333');
+    final item4 = TestItem(true, 12, '444');
+    final collection = Collection<TestItem>(
+      getModelId: (i) => i.optString,
+      sortBy: CollectionSort((v) => v.optInt.toString(), 'desc'),
+    );
+
+    collection.set(item);
+
+    var count = 0;
+    collection.observe((p0) {
+      count += 1;
+    });
+
+    collection.setAll([item2, item3, item4]);
+    assert(count == 1);
+  });
+
+  test('setting multiple items emits single event on collection', () {
+    final item = TestItem(true, 3, '111');
+    final item2 = TestItem(true, 4, '222');
+    final item3 = TestItem(true, 9, '333');
+    final item4 = TestItem(true, 12, '444');
+    final collection = Collection<TestItem>(
+      getModelId: (i) => i.optString,
+      sortBy: CollectionSort((v) => v.optInt.toString(), 'desc'),
+    );
+
+    var count = 0;
+    collection.observe((p0) {
+      count += 1;
+    });
+
+    collection.setAll([item, item2, item3, item4]);
+    assert(count == 1);
+  });
 }
