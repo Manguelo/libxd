@@ -4,32 +4,37 @@ library libxd;
 import 'package:collection/collection.dart';
 import 'package:mobx/mobx.dart';
 
-part 'collection.g.dart';
-
 class CollectionSort<T> {
   CollectionSort(this.variable, this.order);
   String Function(T) variable;
   String order;
 }
 
-class Collection<T> = _Collection<T> with _$Collection;
+class CollectionChange<T> {
+  CollectionChange({required this.collection});
 
-abstract class _Collection<T> with Store {
-  _Collection({
+  final Collection<T> collection;
+}
+
+class Collection<T> implements Listenable<CollectionChange<T>> {
+  Collection({
     this.getModelId,
     this.update,
     this.create,
     this.sortBy,
   }) {
     getModelId ??= (dynamic s) => s?.id;
-    update ??= (existing, data) {
-      final indexToUpdate = items.indexOf(existing);
-      if (indexToUpdate != -1) {
-        items[indexToUpdate] = data;
-      }
-    };
+    update ??= (existing, data) => _update(existing, data);
     create ??= (input) => input;
+    _atom = Atom(
+        name: mainContext.nameFor('ObservableList<$T>'), context: mainContext);
   }
+
+  // Mobx stuff
+  late Atom _atom;
+  Listeners<CollectionChange<T>>? _listenersField;
+  Listeners<CollectionChange<T>> get _listeners =>
+      _listenersField ??= Listeners(mainContext);
 
   /// Determines which variable on the model should be used for the ID.
   String? Function(T)? getModelId;
@@ -62,9 +67,21 @@ abstract class _Collection<T> with Store {
     return items.isEmpty;
   }
 
+  // Notify Mobx that a change has been made to our collection.
+  void _notifyUpdate([bool isSingleUpdate = true]) {
+    // Only fire an updated event if we are doing a single update action.
+    // Otherwise, when calling setAll we'll get an event for each item updated.
+    if (isSingleUpdate) {
+      mainContext.conditionallyRunInAction(
+        () => _notifyCollectionUpdate(),
+        _atom,
+      );
+    }
+  }
+
   /// Gets an item by it's ID.
-  @action
   T? get(String? id) {
+    _atom.reportObserved();
     if (id == null) {
       return null;
     }
@@ -92,8 +109,8 @@ abstract class _Collection<T> with Store {
   }
 
   /// Get multiple items by their ID.
-  @action
   List<T?> getAll(Iterable<String?> ids) {
+    _atom.reportObserved();
     if (ids.isEmpty) {
       return [];
     }
@@ -104,14 +121,13 @@ abstract class _Collection<T> with Store {
   /// Given an object, intelligently adds or updates items.
   /// If an item representing the given input exists in the collection (based on getDataId),
   /// the update is called. If not, the create function is called and the result is added to the internal items array.
-  @action
+
   T set(T item) {
     return _set(item);
   }
 
   /// Internal set method to optionally update with sort.
-  @action
-  T _set(T item, {bool withSort = true}) {
+  T _set(T item, {bool isSingleUpdate = true}) {
     var dataId = getModelId!(item);
     if (dataId == null) {
       throw FormatException('$dataId is not a valid id');
@@ -122,7 +138,8 @@ abstract class _Collection<T> with Store {
     var existing = get(dataId);
     if (existing != null) {
       update!(existing, item);
-      _trySort(withSort);
+      _trySort(isSingleUpdate);
+      _notifyUpdate(isSingleUpdate);
       return existing;
     }
 
@@ -133,14 +150,15 @@ abstract class _Collection<T> with Store {
     existing = get(dataId);
     if (existing != null) {
       update!(existing, item);
-      _trySort(withSort);
+      _trySort(isSingleUpdate);
+      _notifyUpdate(isSingleUpdate);
       return existing;
     }
 
     items.add(created);
     idMap.addAll({dataId: created});
-
-    _trySort(withSort);
+    _trySort(isSingleUpdate);
+    _notifyUpdate(isSingleUpdate);
 
     return created;
   }
@@ -148,29 +166,29 @@ abstract class _Collection<T> with Store {
   /// Given an array of objects, intelligently adds or updates items.
   /// If items representing the given inputs exists in the collection (based on getDataId),
   /// the update is called. If not, the create function is called and the result is added to the internal items array.
-  @action
+
   List<T> setAll(Iterable<T> models) {
     if (models.isEmpty) {
       return [];
     }
-    final result = models.map((item) => _set(item, withSort: false)).toList();
+    final result =
+        models.map((item) => _set(item, isSingleUpdate: false)).toList();
     if (sortBy != null) {
       sort(sortBy!.variable, sortBy!.order);
     }
+    _notifyUpdate();
     return result;
   }
 
   /// Adds one item to the end of collection (does not call create).
   /// No updating is done here, existing items (based on referential equality) are not added again.
-  @action
   Collection<T> add(T model) {
     addAll([model]);
-    return this as Collection<T>;
+    return this;
   }
 
   /// Adds multiple items to the end of collection (does not call create).
   /// No updating is done here, existing items (based on referential equality) are not added again.
-  @action
   Collection<T> addAll(Iterable<T> models) {
     // Try filtering out existing items.
     models = models.where((m) => !items.contains(m));
@@ -178,14 +196,14 @@ abstract class _Collection<T> with Store {
     if (sortBy != null) {
       sort(sortBy!.variable, sortBy!.order);
     }
-    return this as Collection<T>;
+    _notifyUpdate();
+    return this;
   }
 
   /// Removes an item based on the item itself.
-  @action
   Collection<T> remove(T? model) {
     if (model == null) {
-      return this as Collection<T>;
+      return this;
     }
 
     items.remove(model);
@@ -194,41 +212,45 @@ abstract class _Collection<T> with Store {
     if (modelId != null) {
       idMap.remove(modelId);
     }
-
-    return this as Collection<T>;
+    _notifyUpdate();
+    return this;
   }
 
   /// Removes an item based on it's ID.
-  @action
   Collection<T> removeById(String? id) {
     final model = get(id);
     return remove(model);
   }
 
+  void _update(T existing, T data) {
+    final indexToUpdate = items.indexOf(existing);
+    if (indexToUpdate != -1) {
+      items[indexToUpdate] = data;
+    }
+  }
+
   /// Clears the internal items array.
-  @action
   Collection<T> clear() {
     items.clear();
     idMap.clear();
-    return this as Collection<T>;
+    _notifyUpdate();
+    return this;
   }
 
   /// Moves an item from one position to another, checking that
   /// the indexes given are within bounds.
-  @action
   Collection<T> move(int fromIndex, int toIndex) {
     _moveItem(items, fromIndex, toIndex);
-    return this as Collection<T>;
+    _notifyUpdate();
+    return this;
   }
 
   /// Returns collection items where [variable] from [T] equals [value]
-  @action
   List<T> filter(Function(T) variable, dynamic value) {
     return items.where((item) => variable(item) == value).toList();
   }
 
   /// Sorts collection items by order `asc` or `desc` based on the provided `variable`
-  @action
   void sort(String Function(T) variable, String order) {
     if (order == 'asc') {
       items.sort((x, y) => variable(x).compareTo(variable(y)));
@@ -238,11 +260,24 @@ abstract class _Collection<T> with Store {
   }
 
   /// Tries to sort the collection if possible/
-  @action
   void _trySort([bool withSort = true]) {
     if (withSort && sortBy != null) {
       sort(sortBy!.variable, sortBy!.order);
     }
+  }
+
+  ///
+  /// MobX stuff to make this class observable
+  ///
+  void _notifyCollectionUpdate() {
+    _atom.reportChanged();
+    _listeners.notifyListeners(CollectionChange<T>(collection: this));
+  }
+
+  @override
+  Dispose observe(Listener<CollectionChange<T>> listener,
+      {bool fireImmediately = false}) {
+    return _listeners.add(listener);
   }
 }
 

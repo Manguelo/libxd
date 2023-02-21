@@ -1,3 +1,7 @@
+## 1.1.0
+
+- Update the Collection object to be observable.
+
 ## 1.0.2
 
 - More pub.dev points!
