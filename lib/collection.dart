@@ -138,9 +138,10 @@ class Collection<T> implements Listenable<CollectionChange<T>> {
     var existing = get(dataId);
     if (existing != null) {
       update!(existing, item);
+      existing = get(dataId);
       _trySort(isSingleUpdate);
       _notifyUpdate(isSingleUpdate);
-      return existing;
+      return existing!;
     }
 
     final created = create!(item);
