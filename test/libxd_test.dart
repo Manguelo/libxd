@@ -237,4 +237,19 @@ void main() {
     collection.setAll([item, item2, item3, item4]);
     assert(count == 1);
   });
+
+  test('setting an item returns the updated item', () {
+    final item = TestItem(true, 3, '111');
+    final updatedItem = TestItem(false, 20, '111');
+    final collection = Collection<TestItem>(
+      getModelId: (i) => i.optString,
+      sortBy: CollectionSort((v) => v.optInt.toString(), 'desc'),
+    );
+
+    collection.set(item);
+    final result = collection.set(updatedItem);
+
+    assert(result.optBool == false);
+    assert(result.optInt == 20);
+  });
 }

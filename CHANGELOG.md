@@ -1,3 +1,7 @@
+## 1.2.0
+
+- Fixed a bug where the updated item wasn't being returned from the set method.
+
 ## 1.1.0
 
 - Update the Collection object to be observable.
